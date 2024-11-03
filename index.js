@@ -69,6 +69,15 @@ io.use(authenticateSocket).on("connection", (socket) => {
         }
     });
 
+     // Event untuk mengetik
+     socket.on("typing", (data) => {
+        const { targetUsername } = data; // Menggunakan format JSON
+        const targetSocket = connectedUsers[targetUsername];
+        if (targetSocket) {
+            targetSocket.emit("userTyping", { from: socket.username });
+        }
+    });
+
     socket.on("disconnect", () => {
         console.log(`User ${socket.username} disconnected`);
         // Hapus koneksi socket dari objek connectedUsers
