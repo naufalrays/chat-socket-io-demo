@@ -53,6 +53,7 @@ io.use(authenticateSocket).on("connection", (socket) => {
         const msgObject = {
             from: socket.username,
             message,
+            sentAt: new Date().toISOString(), // Format tanggal dan waktu dalam ISO
         };
 
         // Cek apakah pengguna tujuan terhubung
