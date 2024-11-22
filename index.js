@@ -42,8 +42,6 @@ const authenticateSocket = (socket, next) => {
 
 // Gunakan middleware otorisasi saat pengguna terhubung
 io.use(authenticateSocket).on("connection", (socket) => {
-    console.log(`User ${socket.userId} connected`);
-
     socket.on("sendMessageToUser", (data) => {
         const { target_id, message_id: numbers } = data;
     
@@ -56,9 +54,11 @@ io.use(authenticateSocket).on("connection", (socket) => {
             return; // Hentikan proses jika ID pesan tidak valid
         }
     
+        const userId = Number(socket.userId);  // Mengubah socket.userId menjadi number
+
         // Buat objek pesan ke target
         const msgObject = {
-            from: socket.target_id,
+            from: userId,
             message_id,  // Sekarang messageId pasti number
             sentAt: new Date().toISOString(), // Format tanggal dan waktu dalam ISO
         };
