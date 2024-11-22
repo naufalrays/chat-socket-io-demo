@@ -44,18 +44,25 @@ const authenticateSocket = (socket, next) => {
 io.use(authenticateSocket).on("connection", (socket) => {
     console.log(`User ${socket.username} connected`);
 
-    // Event untuk mengirim pesan ke pengguna tertentu
     socket.on("sendMessageToUser", (data) => {
-        const { targetUsername, message } = data; // Menggunakan format JSON
-        console.log(`Pesan dari ${socket.username} ke ${targetUsername}: ${message}`);
-
-        // Buat objek pesan
+        const { targetUsername, messageId: numbers } = data;
+    
+        // Pastikan messageId adalah number
+        const messageId = Number(numbers);  // Atau bisa juga menggunakan parseInt(numbers)
+    
+        // Periksa apakah messageId berhasil diubah menjadi angka
+        if (isNaN(messageId)) {
+            socket.emit("messageDelivered", "ID pesan tidak valid. Harus berupa angka.");
+            return; // Hentikan proses jika ID pesan tidak valid
+        }
+    
+        // Buat objek pesan ke target
         const msgObject = {
             from: socket.username,
-            message,
+            messageId,  // Sekarang messageId pasti number
             sentAt: new Date().toISOString(), // Format tanggal dan waktu dalam ISO
         };
-
+    
         // Cek apakah pengguna tujuan terhubung
         const targetSocket = connectedUsers[targetUsername];
         if (targetSocket) {
@@ -67,10 +74,19 @@ io.use(authenticateSocket).on("connection", (socket) => {
             // Kirim notifikasi bahwa pengguna tidak terhubung
             socket.emit("messageDelivered", `${targetUsername} tidak terhubung. Pesan tidak dapat dikirim.`);
         }
+    });    
+
+    // Event untuk mengetik
+    socket.on("typing", (data) => {
+        const { targetUsername } = data; // Menggunakan format JSON
+        const targetSocket = connectedUsers[targetUsername];
+        if (targetSocket) {
+            targetSocket.emit("userTyping", { from: socket.username });
+        }
     });
 
-     // Event untuk mengetik
-     socket.on("typing", (data) => {
+    // Event untuk recording
+    socket.on("recording", (data) => {
         const { targetUsername } = data; // Menggunakan format JSON
         const targetSocket = connectedUsers[targetUsername];
         if (targetSocket) {
