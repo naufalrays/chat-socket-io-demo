@@ -81,7 +81,8 @@ io.use(authenticateSocket).on("connection", (socket) => {
         const { target_id } = data; // Menggunakan format JSON
         const targetSocket = connectedUsers[target_id];
         if (targetSocket) {
-            targetSocket.emit("userTyping", { from: socket.userId });
+            const userId = Number(socket.userId);  // Mengubah socket.userId menjadi number
+            targetSocket.emit("userTyping", { from: userId });
         }
     });
 
