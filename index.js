@@ -43,7 +43,7 @@ const authenticateSocket = (socket, next) => {
 // Gunakan middleware otorisasi saat pengguna terhubung
 io.use(authenticateSocket).on("connection", (socket) => {
     socket.on("sendMessageToUser", (data) => {
-        const { target_id, message_id: numbers } = data;
+        const { target_id , message_id: numbers } = data;
     
         // Pastikan messageId adalah number
         const message_id = Number(numbers);  // Atau bisa juga menggunakan parseInt(numbers)
@@ -54,11 +54,10 @@ io.use(authenticateSocket).on("connection", (socket) => {
             return; // Hentikan proses jika ID pesan tidak valid
         }
     
-        const userId = Number(socket.userId);  // Mengubah socket.userId menjadi number
 
         // Buat objek pesan ke target
         const msgObject = {
-            from: userId,
+            from: socket.userId,
             message_id,  // Sekarang messageId pasti number
             sentAt: new Date().toISOString(), // Format tanggal dan waktu dalam ISO
         };
@@ -81,7 +80,7 @@ io.use(authenticateSocket).on("connection", (socket) => {
         const { target_id } = data; // Menggunakan format JSON
         const targetSocket = connectedUsers[target_id];
         if (targetSocket) {
-            const userId = Number(socket.userId);  // Mengubah socket.userId menjadi number
+            const userId = socket.userId // Mengubah socket.userId menjadi number
             targetSocket.emit("userTyping", { from: userId });
         }
     });
