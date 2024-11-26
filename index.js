@@ -23,16 +23,30 @@ app.get('/users', (req, res) => {
 // Middleware untuk memeriksa userId
 const authenticateSocket = (socket, next) => {
     const userId = socket.handshake.headers['user_id'];
-    if (!userId) {
-        console.log("User tidak ditemukan.");
-        return next(new Error("Unauthorized"));
+    const authorizationHeader = (socket.handshake.auth['authorization'] ||
+        socket.handshake.headers['authorization']) ;
+    
+    // console.log(`userId ${userId}`);
+    // if (!userId) {
+    //     console.log("User tidak ditemukan.");
+    //     return next(new Error("Unauthorized"));
+    // }
+    console.log(`usernya ${authorizationHeader}`);
+    if(!authorizationHeader){
+        console.log("ga dapet");
     }
 
     const userExists = users.some(user => user.userId === userId);
 
     if (userExists) {
         socket.userId = userId;
-        connectedUsers[userId] = socket; // Simpan koneksi socket
+
+        // Menambahkan socket ke array untuk pengguna ini
+        if (!connectedUsers[userId]) {
+            connectedUsers[userId] = [];
+        }
+        connectedUsers[userId].push(socket); // Menambahkan socket baru ke dalam array
+        console.log(`User ${userId} connected on socket ${socket.id}`);
         return next();
     } else {
         console.log("User tidak valid:", userId);
@@ -43,7 +57,7 @@ const authenticateSocket = (socket, next) => {
 // Gunakan middleware otorisasi saat pengguna terhubung
 io.use(authenticateSocket).on("connection", (socket) => {
     socket.on("sendMessageToUser", (data) => {
-        const { target_id , message_id: numbers } = data;
+        const { target_id, message_id: numbers } = data;
     
         // Pastikan messageId adalah number
         const message_id = Number(numbers);  // Atau bisa juga menggunakan parseInt(numbers)
@@ -54,7 +68,6 @@ io.use(authenticateSocket).on("connection", (socket) => {
             return; // Hentikan proses jika ID pesan tidak valid
         }
     
-
         // Buat objek pesan ke target
         const msgObject = {
             from: socket.userId,
@@ -63,42 +76,60 @@ io.use(authenticateSocket).on("connection", (socket) => {
         };
     
         // Cek apakah pengguna tujuan terhubung
-        const targetSocket = connectedUsers[target_id];
-        if (targetSocket) {
-            // Kirim pesan langsung jika pengguna terhubung
-            targetSocket.emit("receiveMessage", msgObject);
+        const targetSockets = connectedUsers[target_id];  // Ambil semua soket yang terhubung dengan target_id
+        if (targetSockets) {
+            // Kirim pesan ke semua soket yang terhubung dengan target_id
+            targetSockets.forEach(targetSocket => {
+                targetSocket.emit("receiveMessage", msgObject);
+            });
             // Kirim notifikasi bahwa pesan telah terkirim
             socket.emit("messageDelivered", `Pesan berhasil dikirim ke ${target_id}!`);
         } else {
             // Kirim notifikasi bahwa pengguna tidak terhubung
             socket.emit("messageDelivered", `${target_id} tidak terhubung. Pesan tidak dapat dikirim.`);
         }
-    });    
+    });
+    
 
     // Event untuk mengetik
     socket.on("typing", (data) => {
         const { target_id } = data; // Menggunakan format JSON
-        const targetSocket = connectedUsers[target_id];
-        if (targetSocket) {
-            const userId = socket.userId // Mengubah socket.userId menjadi number
-            targetSocket.emit("userTyping", { from: userId });
+        const targetSockets = connectedUsers[target_id];
+        if (targetSockets) {
+            targetSockets.forEach(targetSocket => {
+                targetSocket.emit("userTyping", { from: socket.userId });
+            });
         }
     });
-
+    
     // Event untuk recording
     socket.on("recording", (data) => {
         const { target_id } = data; // Menggunakan format JSON
-        const targetSocket = connectedUsers[target_id];
-        if (targetSocket) {
-            targetSocket.emit("userTyping", { from: socket.userId });
+        const targetSockets = connectedUsers[target_id];
+        if (targetSockets) {
+            targetSockets.forEach(targetSocket => {
+                targetSocket.emit("userRecording", { from: socket.userId });
+            });
         }
     });
+    
 
     socket.on("disconnect", () => {
         console.log(`User ${socket.userId} disconnected`);
-        // Hapus koneksi socket dari objek connectedUsers
-        delete connectedUsers[socket.userId];
+    
+        // Hapus socket yang terputus dari array
+        const userSockets = connectedUsers[socket.userId];
+        if (userSockets) {
+            // Hapus socket yang terputus dari array
+            connectedUsers[socket.userId] = userSockets.filter(s => s.id !== socket.id);
+            
+            // Jika tidak ada socket yang terhubung lagi, hapus userId dari connectedUsers
+            if (connectedUsers[socket.userId].length === 0) {
+                delete connectedUsers[socket.userId];
+            }
+        }
     });
+    
 });
 
 const PORT = process.env.PORT || 3000;
