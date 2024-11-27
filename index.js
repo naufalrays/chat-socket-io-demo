@@ -22,18 +22,12 @@ app.get('/users', (req, res) => {
 
 // Middleware untuk memeriksa userId
 const authenticateSocket = (socket, next) => {
-    const userId = socket.handshake.headers['user_id'];
-    const authorizationHeader = (socket.handshake.auth['authorization'] ||
-        socket.handshake.headers['authorization']) ;
-    
-    // console.log(`userId ${userId}`);
-    // if (!userId) {
-    //     console.log("User tidak ditemukan.");
-    //     return next(new Error("Unauthorized"));
-    // }
-    console.log(`usernya ${authorizationHeader}`);
-    if(!authorizationHeader){
-        console.log("ga dapet");
+    // Ambil userId dari query parameters pada URL koneksi
+    const userId = socket.handshake.query.user_id; 
+
+    if (!userId) {
+        console.log("User tidak ditemukan.");
+        return next(new Error("Unauthorized"));
     }
 
     const userExists = users.some(user => user.userId === userId);
