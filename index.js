@@ -83,8 +83,14 @@ io.use(authenticateSocket).on("connection", (socket) => {
             socket.emit("messageDelivered", `${target_id} tidak terhubung. Pesan tidak dapat dikirim.`);
         }
     });
-    
+
     socket.on("deleteMessages", (data) => {
+        if (!data || typeof data !== "object") {
+            console.error("Data tidak valid:", data);
+            // socket.emit("error", "Format data tidak valid.");
+            return;
+        }
+
         const { target_id, message_ids } = data;
     
         // Normalisasi input: jika bukan array, ubah menjadi array
