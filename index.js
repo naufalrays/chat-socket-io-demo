@@ -107,6 +107,7 @@ io.use(authenticateSocket).on("connection", (socket) => {
             targetSockets.forEach(targetSocket => {
                 targetSocket.emit("messagesDeleted", {
                     from: socket.userId,
+                    to: target_id,
                     message_ids: messageIds,
                     deletedAt: new Date().toISOString()
                 });
