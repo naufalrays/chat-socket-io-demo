@@ -84,6 +84,29 @@ io.use(authenticateSocket).on("connection", (socket) => {
         }
     });
     
+    socket.on("deleteMessages", (data) => {
+        const { target_id, message_ids } = data;
+    
+        // Normalisasi input: jika bukan array, ubah menjadi array
+        const messageIds = Array.isArray(message_ids) ? message_ids : [message_ids];
+    
+        // Validasi: Pastikan semua ID valid
+        if (messageIds.some(id => typeof id !== "number" && typeof id !== "string")) {
+            // socket.emit("messagesDeleted", "Format message_ids tidak valid. Harus berupa number atau array of numbers.");
+            return;
+        }
+    
+        const targetSockets = connectedUsers[target_id];
+        if (targetSockets) {
+            targetSockets.forEach(targetSocket => {
+                targetSocket.emit("messagesDeleted", {
+                    from: socket.userId,
+                    message_ids: messageIds,
+                    deletedAt: new Date().toISOString()
+                });
+            });
+        }
+    });    
 
     // Event untuk mengetik
     socket.on("typing", (data) => {
