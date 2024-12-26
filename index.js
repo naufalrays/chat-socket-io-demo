@@ -92,6 +92,12 @@ io.use(authenticateSocket).on("connection", (socket) => {
         }
 
         const { target_id, message_ids } = data;
+
+        // Jika user menghapus kolom chat dengan dirinya
+        if(target_id == socket.userId){
+            // Tidak dapat menghapus, karena tidak mungkin menghapus chat dengan diri sendiri (Belum tersedia)
+            return;
+        }
     
         // Normalisasi input: jika bukan array, ubah menjadi array
         const messageIds = Array.isArray(message_ids) ? message_ids : [message_ids];
@@ -101,7 +107,20 @@ io.use(authenticateSocket).on("connection", (socket) => {
             // socket.emit("messagesDeleted", "Format message_ids tidak valid. Harus berupa number atau array of numbers.");
             return;
         }
-    
+        
+        // Pesan yang dihapus adalah pesan milik si penghapus sendiri
+        const userSockets = connectedUsers[socket.userId];
+        if (userSockets) {
+            userSockets.forEach(targetSocket => {
+                targetSocket.emit("messagesDeleted", {
+                    from: socket.userId,
+                    to: target_id,
+                    message_ids: messageIds,
+                    deletedAt: new Date().toISOString()
+                });
+            });
+        }
+
         const targetSockets = connectedUsers[target_id];
         if (targetSockets) {
             targetSockets.forEach(targetSocket => {
