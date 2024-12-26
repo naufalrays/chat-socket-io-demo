@@ -116,6 +116,7 @@ io.use(authenticateSocket).on("connection", (socket) => {
                     from: socket.userId,
                     to: target_id,
                     message_ids: messageIds,
+                    isFromOtherUser: false,  // Menandakan bahwa ini berasal dari pengguna itu sendiri
                     deletedAt: new Date().toISOString()
                 });
             });
@@ -128,6 +129,7 @@ io.use(authenticateSocket).on("connection", (socket) => {
                     from: socket.userId,
                     to: target_id,
                     message_ids: messageIds,
+                    isFromOtherUser: true,  // Menandakan bahwa ini berasal dari orang lain
                     deletedAt: new Date().toISOString()
                 });
             });
